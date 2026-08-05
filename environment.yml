@@ -1,0 +1,42 @@
+name: weather-ml
+channels:
+  - pytorch                  # Natively resolves official PyTorch GPU binaries safely
+  - nvidia                   # Ingests official NVIDIA CUDA toolkit execution layers
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  # Core Deep Learning Stack (Conda handles the CUDA mapping smoothly)
+  - pytorch=2.3.1            # Stable PyTorch build compiled for CUDA 12.1 bindings
+  - torchvision=0.18.1       
+  - torchaudio=2.3.1
+  - pytorch-cuda=12.1        # Forces explicit linkage to your RTX 3070 graphic card
+  # Geospatial & Matrix Stack (Strictly pinned to maintain NumPy 1.x C-API standard)
+  - cartopy=0.21.1           # FIXED: Locks stable version to eliminate vertical map shift
+  - shapely=2.0.1            # Locks matching geometry tracking systems
+  - pyproj=3.5.0             # Locks coordinate projection transformations
+  - numpy=1.26.4             # CRITICAL: Locks NumPy 1.x globally across all stacks
+  - pip
+  - pip:
+      # Pinned to pip to prevent cross-manager version manipulation loops
+      - opencv-python==4.9.0.80  # CRITICAL: Blocks silent automatic NumPy 2.x upgrades
+      - pandas
+      - scikit-learn==1.4.2     # For Unsupervised K-Means Split Stratification
+      - matplotlib
+      - seaborn==0.13.2         # plotting
+      - jupyterlab
+      - tqdm
+      - scikit-image
+      - imageio
+      - pyyaml
+      # Testing, Linting, & Code Quality
+      - pytest
+      - black
+      # Advanced Spatiotemporal Modeling (ViT/Transformers)
+      - einops
+      # Interactive Web Dashboard Interface
+      - streamlit
+      # DATABASE SUPPORT: Enterprise Relational Database Ingestors
+      - sqlalchemy        
+      - alembic           
+      - psycopg2-binary

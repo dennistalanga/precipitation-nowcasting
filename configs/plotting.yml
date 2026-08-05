@@ -1,0 +1,17 @@
+paths:
+  test_dir: "" # If left blank, will auto-fetch the latest run folder
+  radar_coords: "data/raw/radar_coords_NW.npz"
+
+# Visualization Configuration Boundaries
+query:
+  # To query by index: set this to an integer (e.g., 250 or "250")
+  # To query by absolute date: set this to an ISO string (e.g., "2016-04-15 14:05:00")
+  target: 450
+  
+  # For your GIF script variant parameters
+  fps: 2
+
+output:
+  # Directory where outputs are compiled (will auto-create inside the resolved run folder)
+  sub_dir_grid: "plots"
+  sub_dir_gif: "plots"

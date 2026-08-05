@@ -1,0 +1,13 @@
+metadata:
+  zone: "NW"
+
+paths:
+  source_dir: "data/raw"
+  target_dir: "data/processed"
+
+dimensions:
+  resize_height: 256
+  resize_width: 256
+
+parameters:
+  clip_value: 1500

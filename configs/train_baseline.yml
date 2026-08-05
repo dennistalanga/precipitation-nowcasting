@@ -1,0 +1,28 @@
+paths:
+  processed_dir: "data/processed/NW/resize256x256_log_clip1500"
+  model_output_dir: "output/models"
+
+data_split:
+  train_start: "2017-03-01T00:00"
+  train_end: "2017-11-30T23:55"
+  val_start: "2016-04-01T00:00"
+  val_end: "2016-06-30T23:55"
+
+dataset:
+  sequence_length: 6
+  predict_steps: 6
+  input_channels: 2   # keep at 2: (frames, masks) for masking missing pixel values
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 1
+
+model:
+  architecture: "baseline_cnn"
+  base_channels: 32
+  num_groups: 8
+
+optimization:
+  epochs: 40
+  batch_size: 16
+  learning_rate: 3.0e-3
+  weight_decay: 0.05

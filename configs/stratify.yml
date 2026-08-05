@@ -1,0 +1,36 @@
+paths:
+  processed_dir: "data/processed/NW/resize256x256_log_clip1500"
+  output_dir: "data/difficulty"
+  zone: "NW"
+
+dataset:
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 1
+  stride: 3 # Stride over dataset for a statistical representation while saving compute
+
+meteorology:
+  rain_threshold: 0.1           # mm/h (Cuts off sensor noise)
+  moderate_rain_threshold: 5.0  # mm/h (moderate rain curoff)
+  heavy_rain_threshold: 20.0    # mm/h (Standard convective cell cutoff)
+  # Minimum % of spatial coverage required to classify a frame as rainy
+  min_rain_coverage_fraction: 0.01
+
+# Minimum and maximum pixel displacements allowed per step to filter out noise
+motion_tracking:
+  min_displacement_pixels: 0.01
+  max_displacement_pixels: 50.0
+
+# Proportional weights used to compile high-level composite difficulty score
+weights:
+  temporal_variability: 0.25
+  spatial_variance: 0.20
+  heavy_tail: 0.20
+  frequency: 0.15
+  max_intensity: 0.10
+  dynamics: 0.10
+
+# Baseline partition targets for data-driven stratified sampling loop
+split_ratios:
+  train: 0.70
+  val: 0.15

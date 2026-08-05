@@ -1,0 +1,35 @@
+paths:
+  processed_dir: "data/processed/NW/resize256x256_log_clip1500"
+
+data_split:
+  train_start: "2017-03-01T00:00"
+  train_end: "2017-11-30T23:55"
+  val_start: "2016-04-01T00:00"
+  val_end: "2016-06-30T23:55"
+
+search_settings:
+  model: "baseline_cnn"
+  runs: 15
+  epochs: 20
+  sequence_length: 6
+  predict_steps: 6
+
+# Configure how the engine resumes interrupted sweeps
+resume_settings:
+  enabled: false        # Set to false to always start a brand new sweep folder
+  directory_path: null  # e.g., "output/tuning/20260723_041500_random_search...". If null, auto-picks latest.
+
+# Discrete choice sampling distributions
+distributions:
+  optimization.learning_rate: [3.0e-4, 1.0e-3, 3.0e-3, 1.0e-2] # log-transformed data requires higher learning rates
+  optimization.weight_decay: [0.0, 0.01, 0.05, 0.1]
+  optimization.batch_size: [16, 32]
+  model.base_channels: [16, 24, 32]
+  model.num_groups: [2, 4, 8]
+
+system:
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 1
+  input_channels: 2   # keep at 2: (frames, masks) for masking missing pixel values
+  num_groups: 4

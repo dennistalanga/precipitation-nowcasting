@@ -1,0 +1,25 @@
+paths:
+  processed_dir: "data/processed/NW/resize256x256_log_clip1500"
+  experiment_dir: "" # If left blank, will auto-fetch the latest run folder
+
+data_split:
+  test_start: "2016-09-01T00:00"
+  test_end: "2016-11-30T23:55"
+
+parameters:
+  batch_size: 16
+  prediction_plot_index: 250
+  radar_coords: "data/raw/radar_coords_NW.npz"
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 1
+
+meteorology:
+  # Spatial neighborhood bounding-box scales for Fractions Skill Score convolutions
+  fss_scales: [5, 15, 31]
+  
+  # Precipitation thresholds in physical mm/h
+  thresholds:
+    Light Rain: 0.12
+    Moderate Rain: 2.5
+    Heavy Rain: 10.0
