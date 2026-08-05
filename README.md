@@ -8,7 +8,7 @@
 
 ## Project Goals
 
-This project explores the design and engineering of a complete machine-learning pipeline for short-term precipitation radar nowcasting, from raw meteorological archives through preprocessing, sequence generation, model training, hyperparameter optimization, testing, and domain-specific evaluation.
+This project explores the design and engineering of a complete machine-learning pipeline for short-term precipitation radar nowcasting, from raw meteorological archives through preprocessing, sequence generation, model training, hyperparameter optimization, and domain-specific evaluation.
 
 The main goals are:
 
@@ -613,7 +613,7 @@ The selected baseline configuration from the hyperparameter search is:
 | Base channels | `8` |
 
 
-The baseline contains approximately **420k trainable parameters** depending on the exact configured input/output dimensions. The model was trained, validated and tested using the following splits recommended through [`notebooks/03_dataset_difficulty_analysis.ipynb`](notebooks/03_dataset_difficulty_analysis.ipynb) : 
+The baseline contains approximately **420k trainable parameters** depending on the exact configured input/output dimensions. The model was trained, validated and evaluated using the following splits recommended through [`notebooks/03_dataset_difficulty_analysis.ipynb`](notebooks/03_dataset_difficulty_analysis.ipynb) : 
 ```
   training:     2017-03-01 00:00 to 2017-11-30 23:55
 
@@ -654,7 +654,7 @@ The training history tracks:
 
 ### Forecast-Horizon Performance
 
-Performance is evaluated as a whole, as well as independently across the six forecast steps during testing. The figures below show the error growth over consecutive future forecasting time steps ($T+5$ to $T+30$ minutes) on out-of-sample data, detailing the operational degradation profile across each distinct evaluation metric:
+Performance is evaluated as a whole, as well as independently across the six forecast steps during evaluation. The figures below show the error growth over consecutive future forecasting time steps ($T+5$ to $T+30$ minutes) on out-of-sample data, detailing the operational degradation profile across each distinct evaluation metric:
 
 | Loss Trajectory | MAE Growth | RMSE Accumulation |
 | :-: | :-: | :-: |
@@ -690,7 +690,7 @@ output/models/<experiment>/
 └── training_history.png
 ```
 
-Test runs contain prediction and visualization artifacts:
+Evaluation runs contain prediction and visualization artifacts:
 
 ```text
 output/evaluation/<experiment>/
@@ -912,7 +912,7 @@ precipitation-nowcasting/
 ├── output/             # Experiment artifacts (git-ignored)
 │   ├── logs/           # Local execution logs
 │   ├── models/         # Model checkpoints, experiment info, and train history
-│   ├── test/           # Test predictions, computed metrics, and plots
+│   ├── evaluation/     # Test predictions, computed metrics, and plots
 │   └── tuning/         # Random search results and performance graphs
 ├── README.md
 └── src/
@@ -1151,7 +1151,7 @@ The corresponding visualization scripts are automatically called at the end of s
 
 ### Prediction Plots & Animation Utilities
 
-Since prediction grids and animations visualize a specific designated test sample, they can be invoked independently. If no explicit target directory is specified, they automatically locate and load data from the latest available test run.
+Since prediction grids and animations visualize a specific designated test sample, they can be invoked independently. If no explicit target directory is specified, they automatically locate and load data from the latest available evaluation run.
 
 Prediction inspection grid:
 ```bash
