@@ -8,7 +8,7 @@
 
 ## Project Goals
 
-This project explores the design and engineering of a complete machine-learning pipeline for short-term weather radar nowcasting, from raw meteorological archives through preprocessing, sequence generation, model training, hyperparameter optimization, testing, and domain-specific evaluation.
+This project explores the design and engineering of a complete machine-learning pipeline for short-term precipitation radar nowcasting, from raw meteorological archives through preprocessing, sequence generation, model training, hyperparameter optimization, testing, and domain-specific evaluation.
 
 The main goals are:
 
@@ -899,7 +899,7 @@ The benchmarks were done for a training dataset spanning 6 months worth of radar
 The repository is organized around the ML lifecycle:
 
 ```text
-weather-nowcasting/
+precipitation-nowcasting/
 ├── assets/             # Documentation visuals and diagrams
 ├── configs/            # YAML configuration files for make commands
 ├── data/               # Local dataset files (git-ignored)
@@ -936,7 +936,7 @@ The project is designed for an NVIDIA GPU environment with a compatible CUDA-ena
 
 ```bash
 git clone <repository-url>
-cd weather-nowcasting
+cd precipitation-nowcasting
 
 conda env create -f environment.yml
 conda activate weather-ml
