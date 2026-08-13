@@ -40,3 +40,7 @@ dependencies:
       - sqlalchemy        
       - alembic           
       - psycopg2-binary
+      # Web API Deployment Layer & Serving Architecture
+      - fastapi==0.111.0
+      - uvicorn==0.30.1
+      - requests==2.32.3

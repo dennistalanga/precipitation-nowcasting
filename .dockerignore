@@ -1,0 +1,23 @@
+# Exclude massive local training, processing, and evaluation directories
+data/raw/
+data/processed/
+data/difficulty/
+output/
+
+# Exclude documentation assets
+assets/
+
+# Exclude local environment playgrounds and editor cache configurations
+notebooks/
+.git/
+.gitignore
+*__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+.venv/
+venv/
+.vscode/
+.idea/
+*.md
+.DS_Store

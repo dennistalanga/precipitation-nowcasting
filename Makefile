@@ -1,4 +1,4 @@
-.PHONY: preprocess stratify train search evaluate plot_grid plot_gif plot_history plot_search clean
+.PHONY: preprocess stratify train search evaluate plot_grid plot_gif plot_history plot_search clean api-dev api-test docker-build docker-run
 
 # Central environment definition
 # Uses the active Conda/Conda-forge prefix if available, otherwise defaults to local
@@ -36,5 +36,21 @@ plot_history:
 plot_search:
 	$(PYTHON) -m src.visualization.plot_random_search $(OPTS)
 
+# Run the FastAPI server locally for development with hot-reloading enabled
+api-dev:
+	$(PYTHON) -m uvicorn deployment.app:app --reload --port 8000
+
+# Run the automated endpoint integration verification suite
+api-test:
+	$(PYTHON) -m deployment.test_api
+
+# Build the local container image
+docker-build:
+	docker build -t precipitation-nowcasting:latest .
+
+# Run the production container locally
+docker-run:
+	docker run -p 8000:8000 -v $(PWD)/output:/workspace/output precipitation-nowcasting:latest
+
 clean:
-	rm -rf src/__pycache__ src/*/__pycache__ src/*/*/__pycache__
+	rm -rf src/__pycache__ src/*/__pycache__ src/*/*/__pycache__ deployment/__pycache__
