@@ -12,29 +12,41 @@ This project explores the design and engineering of a complete machine-learning 
 
 The main goals are:
 
-- **End-to-end ML pipeline:** Transform raw radar archives into reproducible multi-step precipitation forecasts.
-- **Modular PyTorch implementation:** Keep data, models, training, evaluation, tuning, and visualization components separated and reusable.
+- **End-to-end ML pipeline:** Transform raw radar archives into reproducible multi-step precipitation forecasts and serve them via a live API microservice.
+- **Modular PyTorch & Serving implementation:** Keep data, models, training, evaluation, tuning, visualization, and deployment components strictly separated and reusable.
 - **Data-centric development:** Investigate the statistical and meteorological properties of the dataset before making modeling decisions.
 - **Reliable evaluation:** Construct training, validation, and test splits with comparable meteorological difficulty rather than relying on arbitrary chronological partitions.
 - **Engineering for constrained hardware:** Stream large radar datasets without requiring the complete training period to fit in system memory, while maintaining sufficient throughput for GPU training.
 - **Reproducible experimentation:** Track configurations, metrics, checkpoints, and generated artifacts at the experiment level.
 - **Baseline-first modeling:** Establish a deliberately simple CNN baseline before introducing explicit temporal modeling, multi-scale skip connections, attention, or specialized losses.
+- **Production-Ready Containerized Serving:** Package the model into an isolated, lightweight, config-driven container capable of real-time diskless inference using native streaming formats.
 
 ## Description
 
 Precipitation radar nowcasting is the task of predicting the near-future evolution of precipitation fields from recent radar observations. This project uses sequences of historical radar images to predict several future precipitation maps at five-minute intervals.
 
-The current baseline is a fully convolutional **encoder-decoder CNN** implemented in PyTorch. Historical frames are combined along the channel dimension and processed by standard 2D convolutions. This is intentionally not a temporal architecture: the baseline provides a simple reference point against which future models with explicit temporal modeling can be compared.
+The core baseline is a fully convolutional **encoder-decoder CNN** implemented in PyTorch. Historical frames are combined along the channel dimension and processed by standard 2D convolutions. This is intentionally not a temporal architecture: the baseline provides a simple reference point against which future models with explicit temporal modeling can be compared.
+
+For serving production requests, a decoupled service layer utilizes **FastAPI** to load model weights dynamically from the experiment registry and execute real-time, low-latency forecasts on streamed matrices without local file lookup overhead.
 
 For the default configuration:
 
 ```
-[Input Sequence: 6 Frames (30 mins)] ──> ┌──────────────────────┐ ──> [Predicted Sequence: 6 Frames (30 mins)]
-                                         │ Modular Baseline CNN │
-[Historical Radar Scans]             ──> └──────────────────────┘ ──> [Spatiotemporal Nowcast Output]
+Historical Batch Training:
+[Raw Radar Archives] ──► [RadarDataset Indexer] ──► [PyTorch DataLoader] ──► [Baseline CNN Training]
+                                                                                      │
+                                                                           (Saves Checkpoint Weights)
+                                                                                      │
+Real-Time Serving Inference:                                                          ▼
+[Client Request: 6 Raw Frames (.npy)] ──► [FastAPI API Engine] ──► [pipeline.py Preprocessing Bridge]
+                                                                                      │
+                                                                           (Runs Model Forward Pass)
+                                                                                      │
+[Client Response: Structured JSON]    ◄── [Nowcast Response]   ◄── [Pydantic Validation Schema Check]
+
 ```
 
-The project is therefore both a working nowcasting pipeline and an engineering baseline for investigating which architectural and data-centric changes actually improve forecast quality.
+The project supports two operational workflows. For offline development, the data framework manages historical lookups, temporal validation filters, and cross-boundary stitching to construct balanced training batches. For online inference, a decoupled service layer handles standalone requests over the network, utilizing an in-memory transformation bridge to feed live stream arrays to the model checkpoint without disk operations.
 
 ## Features
 
@@ -64,6 +76,16 @@ The project is therefore both a working nowcasting pipeline and an engineering b
 * **Makefile Orchestration:** Common pipeline operations are exposed through reproducible `make` targets and configuration files.
 * **Dynamic Configuration Overrides:** Nested configuration values can be overridden from the command line using dot notation.
 
+### 🚀 Production Model Serving
+* **Config-Driven Architecture:** The serving layer dynamically reads experiment metadata logs on boot to reconstruct the required neural network blueprint without hardcoded parameters.
+* **Diskless Stream Processing:** Binary `.npy` payload streams are parsed directly in-memory, bypassing local storage bottlenecks.
+* **Strict Runtime Type Enforcement:** Input structural dimensions and output predictions are parsed and validated at runtime using Pydantic schemas.
+* **Unified Native Logging:** API transactions map directly into Uvicorn’s stream-handler log framework for centralized orchestration tracking.
+* **Isolated Multi-Stage Containerization:** A production-grade `Dockerfile` bundles the runtime dependencies via a lean Miniconda environment, keeping code execution sandboxed.
+* **Local Workspace Volume Isolation:** The model checkpoint engine accesses files via storage volume attachments (`-v`), separating container blueprints from heavy weight assets.
+* **Automated Integration Testing:** An isolated automated validation suite tests successful arrays, handles edge cases, and verifies boundary error exception responses.
+
+
 
 ## Tech Stack
 
@@ -71,6 +93,10 @@ The project is therefore both a working nowcasting pipeline and an engineering b
 | -------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------
 | **Language**               | Python 3.11                   | Core application runtime and pipeline implementation
 | **Deep Learning**          | PyTorch                       | Neural network implementation, tensor operations, automatic differentiation, and GPU training
+| **Web Framework**          | FastAPI                       | Production-grade model serving microservice and routing layer                                              |
+| **Data Validation**        | Pydantic                      | Strict runtime configuration parsing, type enforcement, and response JSON serialization                    |
+| **Server Engine**          | Uvicorn                       | High-performance, asynchronous ASGI web server processing                                                  |
+| **System Validation**      | Requests                      | Automated end-to-end endpoint infrastructure testing                                                       |
 | **Data Analysis**          | Scikit-learn                  | Unsupervised K-Means clustering for archive difficulty stratification and balanced dataset construction
 | **Numerical Computing**    | NumPy                         | Numerical processing, array manipulation, preprocessing, memory-mapped data loading, and evaluation metrics
 | **Data Processing**        | Pandas                        | Archive characterization, difficulty scoring, clustering results, and experiment summaries
@@ -347,6 +373,28 @@ This keeps the application's memory usage nearly constant regardless of the tota
 Because the implementation relies on NumPy memory mapping rather than manually caching arrays, repeated accesses naturally benefit from the operating system's Linux page cache without introducing additional cache-management logic inside the dataset itself.
 
 The overall design was influenced by investigating file-oriented data-loading strategies used in other large-scale machine learning pipelines while adapting them to the unique requirement of preserving chronological radar sequences across archive boundaries.
+
+## Serving Pipeline Architecture
+
+While training relies on a heavy `Dataset` indexer to build batch samples across historical matrices, production serving demands low-overhead latency and decoupled disk dependencies. The deployment microservice uses a streamlined structure:
+
+```
+                  ┌───────────────────────────────┐
+                  │    deployment/schemas.py      │  ◄── Enforces Pydantic structural data typing
+                  └───────────────▲───────────────┘
+                                  │
+[Raw Client .npy Stream] ──► [deployment/app.py] ──► [deployment/pipeline.py]
+                                                            │
+                                                     (Preprocesses live
+                                                     sequence frame-by-frame)
+                                                            │
+                                                            ▼
+[Structured Response JSON] ◄── [Inference Output] ◄── [MODEL.forward()]
+
+```
+1. **`deployment/schemas.py`:** Defines the validation contract. It guarantees clients receive verified data structures while defining exact API query capabilities.
+2. **`deployment/pipeline.py`:** Acts as the preprocessing engine. It accepts a raw continuous 3D sequence array `[Sequence, H, W]`, transforms each frame independently using your standard logarithmic/clipping rules, converts the invalid structures to binary masks, and aggregates them into the stacked channel matrix layout `[1, Sequence, Channels=2, H, W]` expected by the model network.
+3. **`deployment/app.py`:** The core FastAPI engine. On initialization (`@app.on_event("startup")`), it automatically extracts parameters from `experiment.json` and reconstructs the required neural network via your model factory, binding the weights natively without manual property assignment.
 
 ## Model Architecture
 
@@ -906,8 +954,15 @@ precipitation-nowcasting/
 │   ├── difficulty/     # Dataset difficulty assessment results
 │   ├── processed/      # Preprocessed uncompressed radar data
 │   └── raw/            # Compressed radar data from MeteoNet
+├── deployment/         # 🚀 Production Serving Infrastructure Layer
+│   ├── app.py          # FastAPI web service endpoint mapping and setup logic
+│   ├── pipeline.py     # Live matrix preprocessing and validation bridge
+│   ├── schemas.py      # Strict runtime Pydantic response data schemas
+│   └── test_api.py     # Endpoint automated integration test execution suite
 ├── environment.yml     # Conda environment config file
-├── Makefile            # Pipeline orchestration
+├── Dockerfile          # Multi-stage container instruction blueprint
+├── .dockerignore       # Context block firewall filter parameters
+├── Makefile            # Complete pipeline automation orchestration interface
 ├── notebooks/          # Exploration, prototyping, and evaluation
 ├── output/             # Experiment artifacts (git-ignored)
 │   ├── logs/           # Local execution logs
@@ -1145,7 +1200,38 @@ output/evaluation/
 
 ---
 
-## 7. Visualization
+## 7. Standalone Production Model Serving
+
+You can launch, manage, and test the model-serving layer using either your local Conda workspace or an isolated Docker deployment container.
+
+### Local Serving Development Mode
+To boot up the FastAPI execution server locally inside your active `weather-ml` environment with hot-reloading enabled, run:
+```bash
+make api-dev
+```
+The application will automatically locate the latest run inside `output/models/`, reconstruct the specific architecture, load your weights state dictionary, and open communication lines on port `8000`.
+
+### Production-Grade Container Mode
+To build an isolated, self-contained multi-stage Docker environment container blueprint using the updated library structures, trigger:
+```bash
+make docker-build
+```
+
+To run the compiled container server safely isolated from local system paths (utilizing storage volume mapping hooks `-v` to dynamically grant weight access), run:
+```bash
+make docker-run
+```
+*(Note: Close down any running local `api-dev` server panels prior to launching the container so that Port 8000 is open.)*
+
+### Executing the Automated Verification Suite
+While the server is running (either locally or inside Docker), open an adjacent terminal window panel and launch the integration test framework:
+```bash
+make api-test
+```
+This script automatically validates structural metadata responses, feeds synthetic 3D radar sequences, handles missing data mask tokens, and tests client boundary protection filters.
+
+
+## 8. Visualization
 
 The corresponding visualization scripts are automatically called at the end of successful training, evaluation, or tuning runs. However, if a run is cut short or specific outputs need closer inspection, standalone commands are available.
 
@@ -1234,7 +1320,6 @@ The current baseline establishes a foundation for several possible research and 
 
 ### Infrastructure
 
-- Docker-based reproducible environments.
 - Automated unit and integration testing with `pytest`.
 - CI/CD workflows for linting and validation.
 - Distributed multi-GPU training with PyTorch DDP.
@@ -1243,7 +1328,8 @@ The current baseline establishes a foundation for several possible research and 
 - Support for continuous rather than discrete random-search distributions.
 - Database-backed experiment tracking instead of JSON/CSV files.
 - ONNX export and lightweight inference deployment.
-- Interactive web-based prediction dashboards.
+- Interactive web-based prediction dashboards (e.g., using Streamlit) that query the running FastAPI Docker microservice over network ports to render predictions on the fly.
+
 
 ### Code Quality and Maintainability
 
