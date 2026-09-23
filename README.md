@@ -224,82 +224,6 @@ This preserves the ordering of rainfall intensities while allocating more numeri
 The inverse transformation is applied during physical-space evaluation and visualization when required.
 
 
-## Data-Centric Dataset Stratification
-
-### The Problem
-
-An initial chronological split produced a surprising result: validation loss and validation metrics were consistently better than training metrics.
-
-This was not necessarily evidence of overfitting or unusually good generalization. Investigation showed that the selected periods had different meteorological difficulty. In particular, the training period contained substantially more difficult precipitation patterns than the validation period.
-
-This creates a problem for model comparison: a model evaluated on an easier validation distribution can appear better even if its architecture has not improved.
-
-### Archive Characterization
-
-To address this, an automated GPU-accelerated pipeline profiles each uncompressed 10-day chunk across a **9-dimensional meteorological feature descriptor vector** (`src/data/characterize_archives.py`):
-
-```text
-Preprocessed Archive Block (10-Days)
-├── [Coverage & Scarcity] ───► Light Rain Coverage (>0.1 mm/h)
-│                             ► Moderate Rain Coverage (≥5.0 mm/h)
-│                             ► Heavy Convective Tail Coverage (≥20.0 mm/h)
-├── [Intensity Profiles]  ───► Mean Active Rain Intensity (mm/h)
-│                             ► Maximum Peak Convective Core Intensity (mm/h)
-├── [Variance & Flux]     ───► Spatial Variance (Structural organization/chaos)
-│                             ► Temporal Variability (Frame-to-frame MAD)
-│                             ► Rainy Frames Frequency Count
-└── [Tracking Dynamics]   ───► Average System Motion (GPU Centroid Tracking)
-```
-
-These features describe both the amount of precipitation and the complexity and variability of the weather systems contained in an archive.
-
-### Difficulty Modeling
-
-The pipeline standardizes the 9D feature space (`StandardScaler`) and applies an **Unsupervised K-Means Clustering** engine to naturally isolate three distinct physical weather regimes:
-
-The resulting regimes represent progressively more complex weather conditions, for example:
-
-```text
-Low difficulty (Cluster 0)
-    │
-    ├── low intensity
-    ├── low variability
-    └── relatively simple precipitation structure
-
-Medium difficulty (Cluster 1)
-    │
-    ├── broader precipitation coverage
-    ├── higher variability
-    └── more complex systems
-
-High difficulty (Cluster 2)
-    │
-    ├── strong convective activity
-    ├── high temporal variability
-    └── localized intense precipitation
-```
-
-A composite difficulty score is then used to compare candidate continuous train, validation, and test windows.
-
-### Continuous Split Search
-
-The production dataset loader operates on continuous datetime ranges because sequences must be able to cross archive boundaries safely.
-
-To accomodate for this, the automated split recommendation engine inside [`notebooks/03_dataset_difficulty_analysis.ipynb`](notebooks/03_dataset_difficulty_analysis.ipynb) searches for **continuous windows with similar meteorological difficulty**, rather than assembling arbitrary individual archives.
-
-A typical configuration is:
-
-```text
-Training:   6 months
-Validation: 2 months
-Test:       2 months
-```
-
-Candidate windows are required to remain non-overlapping. The search then selects a combination whose meteorological feature distributions are as similar as possible.
-
-This produces a more meaningful benchmark because differences in validation or test performance are less likely to be caused simply by one split containing easier weather.
-
-
 ## Serving Pipeline Architecture
 
 While training relies on a heavy `Dataset` indexer to build batch samples across historical matrices, production serving demands low-overhead latency and decoupled disk dependencies. The deployment microservice uses a streamlined structure:
@@ -769,17 +693,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Gradient norms can be monitored throughout training and used to identify changes in optimization behavior. In later runs, the recorded gradient norms remain finite and interpretable.
 
-
-
-### 5. Validation distribution shift
-
-**Challenge:** A simple chronological split produced substantially easier validation data than training data.
-
-**Decision:** Characterize archive difficulty and search for continuous train/validation/test windows with similar meteorological profiles.
-
-**Result:** Validation and test performance become more meaningful indicators of model behavior rather than indirect measurements of split difficulty.
-
-### 6. Baseline architecture selection
+### 5. Baseline architecture selection
 
 **Challenge:** A complex temporal model would make it difficult to determine which design choice caused an observed improvement.
 
@@ -787,7 +701,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Future ConvLSTM, 3D CNN, U-Net, attention, or transformer models have a clear reference point.
 
-### 7. Long-running experiment recovery
+### 6. Long-running experiment recovery
 
 **Challenge:** Training and hyperparameter searches can run for many hours and can fail before the final epoch.
 
@@ -795,7 +709,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Completed training work is not lost after an interruption, and experiments can be inspected or resumed from saved state.
 
-### 8. Reproducible execution
+### 7. Reproducible execution
 
 **Challenge:** A pipeline with many scripts and command-line options can become difficult to execute consistently.
 
@@ -822,7 +736,6 @@ precipitation-nowcasting/
 ├── notebooks/          # Exploration, prototyping, and evaluation
 ├── output/             # Model Checkpoints, test predictions, metrics, metadata, and plots
 └── src/                # Modular application source (data, models, training, tuning)
-
 ```
 
 - **Deep Learning / Core:** Python 3.11, PyTorch (AMP, DataLoaders), NumPy, Pandas, Scikit-Learn
