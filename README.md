@@ -86,29 +86,6 @@ The project supports two operational workflows. For offline development, the dat
 * **Automated Integration Testing:** An isolated automated validation suite tests successful arrays, handles edge cases, and verifies boundary error exception responses.
 
 
-
-## Tech Stack
-
-| Category                   | Technologies                  | Use Case
-| -------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------
-| **Language**               | Python 3.11                   | Core application runtime and pipeline implementation
-| **Deep Learning**          | PyTorch                       | Neural network implementation, tensor operations, automatic differentiation, and GPU training
-| **Web Framework**          | FastAPI                       | Production-grade model serving microservice and routing layer                                              |
-| **Data Validation**        | Pydantic                      | Strict runtime configuration parsing, type enforcement, and response JSON serialization                    |
-| **Server Engine**          | Uvicorn                       | High-performance, asynchronous ASGI web server processing                                                  |
-| **System Validation**      | Requests                      | Automated end-to-end endpoint infrastructure testing                                                       |
-| **Data Analysis**          | Scikit-learn                  | Unsupervised K-Means clustering for archive difficulty stratification and balanced dataset construction
-| **Numerical Computing**    | NumPy                         | Numerical processing, array manipulation, preprocessing, memory-mapped data loading, and evaluation metrics
-| **Data Processing**        | Pandas                        | Archive characterization, difficulty scoring, clustering results, and experiment summaries
-| **Computer Vision**        | OpenCV, ImageIO, Scikit-Image | Radar image preprocessing, resizing, validation, and animated prediction visualizations 
-| **Data Loading**           | PyTorch Dataset & DataLoader  | Lazy-loading spatiotemporal radar sequences with parallel data streaming
-| **Visualization**          | Matplotlib, Seaborn, Cartopy  | Training diagnostics, prediction analysis, statistical visualizations, and geospatial plotting
-| **Experiment Tracking**    | JSON, CSV                     | Lightweight experiment metadata, metrics, configuration, and reproducibility
-| **Interactive Analysis**   | Jupyter Notebook              | Exploratory data analysis, preprocessing design, prediction inspection, and experimental prototyping
-| **Environment Management** | Conda                         | Dependency management and reproducible development environments
-| **Automation**             | Bash, Make                    | Pipeline automation for preprocessing, training, evaluation, hyperparameter search, and visualization
-| **Version Control**        | Git                           | Distributed source control and project version management
-
 ## Dataset
 
 ### MeteoNet
@@ -322,57 +299,6 @@ Candidate windows are required to remain non-overlapping. The search then select
 
 This produces a more meaningful benchmark because differences in validation or test performance are less likely to be caused simply by one split containing easier weather.
 
-## Memory-Efficient Dataset Architecture
-
-The initial implementation loaded all selected radar archives into memory and concatenated them into large global arrays. While simple, this approach scaled poorly as the training period increased, since memory consumption grew linearly with the amount of selected data.
-
-The production dataset instead combines **localized sequence indexing**, **lazy loading**, and **NumPy memory mapping** to keep application memory bounded while still supporting temporal sequences spanning multiple archive files.
-
-Conceptually:
-
-```text
-Global dataset
-     │
-     ├── Archive A
-     ├── Archive B
-     ├── Archive C
-     └── ...
-            │
-            ▼
-  Localized sequence index
-(archive_id, frame_id, crosses_boundary)
-            │
-            ▼
-       __getitem__()
-            │
-            ▼
-Memory-map required archive(s)
-            │
-            ▼
-Extract only required frames
-            │
-            ▼
-Concatenate small temporal slices
-            │
-            ▼
-Return training sample
-```
-
-Instead of keeping the entire dataset resident in memory, the dataset stores only lightweight metadata and sequence indices during initialization. Individual radar archives remain on disk until a sample is requested.
-
-Each call to `__getitem__()`:
-
-- memory-maps the required archive(s);
-- extracts only the requested temporal window;
-- transparently handles sequences that span archive boundaries;
-- concatenates only the small slices required for the current sample;
-- converts the result into PyTorch tensors.
-
-This keeps the application's memory usage nearly constant regardless of the total training period while still preserving full temporal continuity.
-
-Because the implementation relies on NumPy memory mapping rather than manually caching arrays, repeated accesses naturally benefit from the operating system's Linux page cache without introducing additional cache-management logic inside the dataset itself.
-
-The overall design was influenced by investigating file-oriented data-loading strategies used in other large-scale machine learning pipelines while adapting them to the unique requirement of preserving chronological radar sequences across archive boundaries.
 
 ## Serving Pipeline Architecture
 
@@ -826,23 +752,8 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Valid windows at archive boundaries are retained without treating files as independent datasets.
 
-### 3. High memory consumption
 
-**Challenge:** Concatenating all frames from a long training period can consume large amounts of RAM.
-
-**Decision:** Use lazy archive access and localized sequence indexing rather than one global in-memory array.
-
-**Result:** Memory requirements depend primarily on active data rather than total dataset duration.
-
-### 4. Data throughput
-
-**Challenge:** A memory-efficient dataset can become slower if every batch requires synchronous disk operations.
-
-**Decision:** Combine multiple DataLoader workers with pinned memory, persistent workers, and prefetching.
-
-**Result:** CPU data preparation can overlap with GPU computation.
-
-### 5. Missing spatial measurements
+### 3. Missing spatial measurements
 
 **Challenge:** Missing radar pixels must not be interpreted as physical zero rainfall.
 
@@ -850,7 +761,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Invalid pixels do not contribute to the masked loss or reported metrics.
 
-### 6. Training stability and gradient monitoring
+### 4. Training stability and gradient monitoring
 
 **Challenge:** Early training runs occasionally produced `inf` or missing gradient-norm values. Invalid diagnostics made it difficult to distinguish a genuine optimization problem from a problem in the monitoring calculation itself.
 
@@ -860,7 +771,7 @@ The notebooks complement the production code rather than replacing it.
 
 
 
-### 7. Validation distribution shift
+### 5. Validation distribution shift
 
 **Challenge:** A simple chronological split produced substantially easier validation data than training data.
 
@@ -868,7 +779,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Validation and test performance become more meaningful indicators of model behavior rather than indirect measurements of split difficulty.
 
-### 8. Baseline architecture selection
+### 6. Baseline architecture selection
 
 **Challenge:** A complex temporal model would make it difficult to determine which design choice caused an observed improvement.
 
@@ -876,7 +787,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Future ConvLSTM, 3D CNN, U-Net, attention, or transformer models have a clear reference point.
 
-### 9. Long-running experiment recovery
+### 7. Long-running experiment recovery
 
 **Challenge:** Training and hyperparameter searches can run for many hours and can fail before the final epoch.
 
@@ -884,7 +795,7 @@ The notebooks complement the production code rather than replacing it.
 
 **Result:** Completed training work is not lost after an interruption, and experiments can be inspected or resumed from saved state.
 
-### 10. Reproducible execution
+### 8. Reproducible execution
 
 **Challenge:** A pipeline with many scripts and command-line options can become difficult to execute consistently.
 
@@ -893,55 +804,6 @@ The notebooks complement the production code rather than replacing it.
 **Result:** Common preprocessing, training, tuning, and evaluation workflows can be launched consistently.
 
 
-
-## Performance Optimization Journey
-
-The data pipeline underwent several iterations to support efficient training on multi-gigabyte radar datasets while operating within the memory constraints of a consumer workstation.
-
-### Initial implementation
-
-The first dataset implementation loaded and concatenated entire compressed `.npz` radar archives into memory, without the use of caching. While straightforward, this approach resulted in large memory spikes during dataset construction and did not scale to longer training periods.
-
-### Lazy loading
-
-The next iteration introduced archive-level lazy loading and localized sequence indexing. Rather than materializing the complete dataset, only the radar sequences required for the current sample are loaded. This reduced memory consumption substantially while preserving temporal continuity.
-
-### Caching experiments
-
-Several caching strategies were explored to reduce repeated archive reads:
-
-- instance-level LRU caches for individual DataLoader workers;
-- shared global caches using NumPy memory mapping;
-- `IterableDataset` inspired by high-energy physics frameworks such as *weaver-core*.
-
-Although these approaches reduced disk I/O, they introduced additional synchronization complexity, duplicate caching across workers, or conflicted with the requirement that prediction sequences remain temporally continuous across archive boundaries.
-
-### Production architecture
-
-The final implementation deliberately avoids application-level caching altogether. Instead, it combines:
-
-- uncompressed `.npy` data archives;
-- archive-based lazy loading with `mmap_mode="r"`;
-- localized temporal indexing;
-- neighboring archive support for cross-boundary sequences;
-- Linux page cache for automatic filesystem caching;
-- multi-worker DataLoaders;
-- pinned memory;
-- persistent workers;
-- batch prefetching.
-
-By delegating file caching to the operating system rather than maintaining custom Python caches, the pipeline remains memory-bounded, avoids synchronization overhead between workers, and scales efficiently while preserving chronological sequence integrity.
-
-### Data Pipeline Benchmark
-
-The benchmarks were done for a training dataset spanning 6 months worth of radar data. 
-
-| Configuration | Peak RAM | Mean Epoch Time | Notes |
-| --- | ---: | ---: | --- |
-| Original full in-memory loading | scales with dataset size | no measurement | All relevant archives resident |
-| Lazy loading | fixed | `1205 s` | Lower memory, higher I/O overhead |
-| Lazy loading + optimized DataLoader | fixed | `427 s` | Final configuration |
-
 ## Project Structure
 
 The repository is organized around the ML lifecycle:
@@ -949,37 +811,22 @@ The repository is organized around the ML lifecycle:
 ```text
 precipitation-nowcasting/
 ├── assets/             # Documentation visuals and diagrams
-├── configs/            # YAML configuration files for make commands
-├── data/               # Local dataset files (git-ignored)
-│   ├── difficulty/     # Dataset difficulty assessment results
-│   ├── processed/      # Preprocessed uncompressed radar data
-│   └── raw/            # Compressed radar data from MeteoNet
+├── configs/            # YAML configuration files for for pipeline reproducibility
+├── data/               # Local dataset files (MeteoNet raw .npz and processed .npy)
 ├── deployment/         # 🚀 Production Serving Infrastructure Layer
 │   ├── app.py          # FastAPI web service endpoint mapping and setup logic
 │   ├── pipeline.py     # Live matrix preprocessing and validation bridge
 │   ├── schemas.py      # Strict runtime Pydantic response data schemas
 │   └── test_api.py     # Endpoint automated integration test execution suite
-├── environment.yml     # Conda environment config file
-├── Dockerfile          # Multi-stage container instruction blueprint
-├── .dockerignore       # Context block firewall filter parameters
-├── Makefile            # Complete pipeline automation orchestration interface
+├── devblog/            # 📖 Technical engineering articles and design journals
 ├── notebooks/          # Exploration, prototyping, and evaluation
-├── output/             # Experiment artifacts (git-ignored)
-│   ├── logs/           # Local execution logs
-│   ├── models/         # Model checkpoints, experiment info, and train history
-│   ├── evaluation/     # Test predictions, computed metrics, and plots
-│   └── tuning/         # Random search results and performance graphs
-├── README.md
-└── src/
-    ├── data/           # Preprocessing, datasets, stratification
-    ├── evaluation/     # Model evaluation pipeline, loss- and metrics definitions
-    ├── models/         # Model implementations and factories
-    ├── inference/      # Model inference and live predictions (not yet implemented)
-    ├── training/       # Model training pipeline
-    ├── tuning/         # Hyperparameter optimization
-    ├── utils/          # Shared utilities and logging
-    └── visualization/  # Plotting for training, prediction, and evaluation
+├── output/             # Model Checkpoints, test predictions, metrics, metadata, and plots
+└── src/                # Modular application source (data, models, training, tuning)
+
 ```
+
+- **Deep Learning / Core:** Python 3.11, PyTorch (AMP, DataLoaders), NumPy, Pandas, Scikit-Learn
+- **Serving / Devops:** FastAPI, Uvicorn, Pydantic, Docker (Multi-stage builds), Make/Bash
 
 ## Installation
 
