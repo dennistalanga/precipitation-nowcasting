@@ -223,29 +223,6 @@ This preserves the ordering of rainfall intensities while allocating more numeri
 
 The inverse transformation is applied during physical-space evaluation and visualization when required.
 
-
-## Serving Pipeline Architecture
-
-While training relies on a heavy `Dataset` indexer to build batch samples across historical matrices, production serving demands low-overhead latency and decoupled disk dependencies. The deployment microservice uses a streamlined structure:
-
-```
-                  ┌───────────────────────────────┐
-                  │    deployment/schemas.py      │  ◄── Enforces Pydantic structural data typing
-                  └───────────────▲───────────────┘
-                                  │
-[Raw Client .npy Stream] ──► [deployment/app.py] ──► [deployment/pipeline.py]
-                                                            │
-                                                     (Preprocesses live
-                                                     sequence frame-by-frame)
-                                                            │
-                                                            ▼
-[Structured Response JSON] ◄── [Inference Output] ◄── [MODEL.forward()]
-
-```
-1. **`deployment/schemas.py`:** Defines the validation contract. It guarantees clients receive verified data structures while defining exact API query capabilities.
-2. **`deployment/pipeline.py`:** Acts as the preprocessing engine. It accepts a raw continuous 3D sequence array `[Sequence, H, W]`, transforms each frame independently using your standard logarithmic/clipping rules, converts the invalid structures to binary masks, and aggregates them into the stacked channel matrix layout `[1, Sequence, Channels=2, H, W]` expected by the model network.
-3. **`deployment/app.py`:** The core FastAPI engine. On initialization (`@app.on_event("startup")`), it automatically extracts parameters from `experiment.json` and reconstructs the required neural network via your model factory, binding the weights natively without manual property assignment.
-
 ## Model Architecture
 
 The project intentionally begins with a **BaselineCNN** whose purpose is to provide a simple, computationally efficient reference model.
