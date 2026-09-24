@@ -9,7 +9,7 @@
 ## The Engineering Challenge: Operational Decoupling
 While historical batch training demands a heavy `Dataset` indexer capable of hunting for temporal continuity across massive multi-gigabyte disk archives, real-time production serving requires the exact opposite. For microservice architectures, disk dependencies introduce blocking I/O bottlenecks. 
 
-A production nowcasting microservice must deliver low-overhead latency, handle concurrent requests asynchronously, enforce strict data shapes at runtime, and process raw network streams entirely in-memory without touchpoints to local machine storage.
+A production nowcasting microservice must deliver low-overhead latency, handle concurrent requests asynchronously, enforce strict data shapes at runtime, and process raw network streams entirely in-memory without using local machine storage.
 
 ---
 

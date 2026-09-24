@@ -7,7 +7,7 @@
 ---
 
 ## The Engineering Challenge: Memory Scalability
-The initial dataset implementation loaded and concatenated entire compressed `.npz` radar archives into memory without the use of caching. While straightforward, this approach resulted in massive RAM utilization spikes during dataset construction. Memory consumption scaled linearly (O(N)) with the length of the selected training period, causing system crashes on standard consumer workstations when scaling past a few weeks of data.
+The initial dataset implementation loaded and concatenated entire compressed `.npz` radar archives into memory without the use of caching. While straightforward, this approach resulted in massive RAM utilization spikes during dataset construction. Memory consumption scaled linearly (O(N)) with the length of the selected training period, causing system crashes on local hardware when scaling past a few weeks of data.
 
 ## The Production Architecture: OS-Managed Caching & Lazy I/O
 The production architecture resolves this bottleneck by completely decoupling application-level memory allocation from dataset size. The system combines **localized sequence indexing**, **lazy loading**, and **NumPy memory mapping (`mmap_mode="r"`)** to keep application memory bounded at O(1) constant overhead while maintaining seamless temporal continuity across archive boundaries.
@@ -47,8 +47,27 @@ Each call to `__getitem__()`:
 4. Materializes and concatenates only the localized slices into RAM required for the active batch.
 5. Passes the multi-channel grid directly into PyTorch tensors.
 
+### Chronological Integrity via Temporal Sequence Validation
+Because short-term convective forecasting relies on tracing physical movement, missing radar scans introduce hidden, irregular time jumps. If an indexer naively builds sample windows across an unmeasured gap, the convolutional layers will interpret a multi-hour break as a standard 5-minute transition, severely corrupting the model's velocity vectors.
+
+To protect optimization cycles, the `RadarDataset` initialization routine runs a strict temporal validation check natively within its constructor loop. After locating candidate files and isolating target datetime bounds, the constructor walks through a sliding temporal window of length `sequence_length + predict_steps`. 
+
+To ensure complete chronological continuity across the entire sequence footprint, every step must satisfy a rigid NumPy delta condition:
+
+```python
+expected_delta = np.timedelta64(5, "m")
+
+for i in range(len(sequence_dates) - 1):
+    if (sequence_dates[i + 1] - sequence_dates[i]) != expected_delta:
+        valid = False
+        break
+```
+
+If a single transition breaks this 5-minute requirement, the sequence window is flagged as an invalid state, skipped, and tracked inside `self.invalid_sequence_count`. Only windows demonstrating perfect chronological alignment are appended to `self.valid_indices`. This setup guarantees data integrity at runtime while still allowing valid sequences to cross physical archive file boundaries seamlessly.
+
+
 ### Operating System Page Cache Delegation
-Rather than maintaining complex, custom Python-level LRU caching logic across multiple background processes—which introduces worker synchronization overhead—this design deliberately delegates file caching entirely to the **Linux Kernel Page Cache**. 
+Rather than maintaining complex, custom Python-level LRU caching logic across multiple background processes, which introduces worker synchronization overhead, this design deliberately delegates file caching entirely to the **Linux Kernel Page Cache**. 
 
 When a background worker reads an uncompressed chunk from disk via memory mapping, the OS automatically retains those disk blocks in unallocated system RAM. Repeated hits to neighboring temporal windows read directly out of physical memory at hardware speeds without triggering hardware I/O interrupts.
 

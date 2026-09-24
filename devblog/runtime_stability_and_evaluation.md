@@ -24,7 +24,7 @@ $$
 
 ## 📊 Part 2: High-Performance, OOM-Safe Evaluation Dynamics
 
-Evaluating deep learning models on continuous multi-month spatiotemporal timelines introduces massive memory management challenges. Processing thousands of high-resolution array grids concurrently can saturate GPU memory and host system RAM, leading to catastrophic **Out-of-Memory (OOM)** system crashes.
+Evaluating deep learning models on continuous multi-month spatiotemporal timelines introduces massive memory management challenges. Processing thousands of high-resolution array grids concurrently can saturate GPU memory and host system RAM, leading to **Out-of-Memory (OOM)** system crashes.
 
 To establish an industrial-grade verification framework, the pipeline isolates heavy compute tasks inside an optimized, asynchronous evaluation engine (`evaluate.py`). The runtime maps metrics **directly on the GPU VRAM** on the fly, while enforcing strict memory containment and I/O optimization strategies:
 
@@ -54,7 +54,7 @@ Preprocessed Rain Matrix Points
 ├── Target >= Moderate Rain (5.0 mm/h) ──► Isolate in bucket_mod   (Cap: 20k)
 └── Target > Light Rain (0.12 mm/h)    ──► Isolate in bucket_light (Cap: 20k)
 ```
-This data-centric architecture guarantees that rare, high-impact convective storm events are perfectly represented during rank correlation checks, rather than being completely washed out by the millions of ambient zero-drizzle background values.
+This data-centric architecture guarantees that rare, high-impact convective storm events are represented during rank correlation checks, rather than being completely washed out by the millions of ambient zero-drizzle background values.
 
 ---
 
@@ -62,9 +62,9 @@ This data-centric architecture guarantees that rare, high-impact convective stor
 
 The compiled verification database (`calculated_verification_metrics.json`) feeds down-stream research notebooks to profile model skill across three distinct physical spaces:
 
-1.  **Continuous Field Accuracy:** Evaluates macro-level volume tracking trends, tracking spatial mean absolute error footprints (`spatial_mae_footprint.npy`) to visualize exactly where localized geographic sensor biases occur.
+1.  **Continuous Field Accuracy:** Evaluates macro-level volume tracking trends, tracking spatial mean absolute error footprints (`spatial_mae_footprint.npy`) to visualize where localized geographic sensor biases occur.
 2.  **Threshold-Based Operational Skill (Categorical Verification):** Aggregates inline contingency tables into standardized weather forecasting metrics including **Probability of Detection (POD)**, **False Alarm Ratio (FAR)**, **Critical Success Index (CSI)**, **Heidke Skill Score (HSS)**, and the **Symmetric Extreme Dependency Score (SEDS)** across every step of the forecast horizon against a persistence baseline.
-3.  **Advanced Scale-Selective Diagnostics:** Utilizes spatial **Fractions Skill Scores (FSS)** over varying neighborhood block scales (5km, 15km, 31km) and **Structure-Amplitude-Location (SAL)** decomposition. This isolates precise architectural failures—distinguishing between bad spatial displacement, structural convective cell blurring, and overall amplitude miscalculations—effectively bypassing the "double penalty effect" inherent in raw pixel-matching loss metrics.
+3.  **Advanced Scale-Selective Diagnostics:** Utilizes spatial **Fractions Skill Scores (FSS)** over varying neighborhood block scales (5km, 15km, 31km) and **Structure-Amplitude-Location (SAL)** decomposition. This isolates precise architectural failures, distinguishing between bad spatial displacement, structural convective cell blurring, and overall amplitude miscalculations, effectively bypassing the "double penalty effect" inherent in raw pixel-matching loss metrics.
 
 ---
 
@@ -77,7 +77,7 @@ Every single epoch checkpoint completely serializes the current epoch count, str
 If a hyperparameter search or standard training block is forcefully cut short, the automated post-run visual scripting routines fail to execute. Dedicated, low-level operational orchestration targets were built into the root `Makefile` to let developers extract complete evaluation graphics straight out of interrupted historical directories retroactively:
 
 ```bash
-# Rescue complete single-run curves from an interrupted historical log
+# Rescue complete single-run curves from an interrupted training history log
 make plot_history
 
 # Process multi-trial convergence matrices from an incomplete hyperparameter search

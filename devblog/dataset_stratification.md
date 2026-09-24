@@ -7,7 +7,7 @@
 ---
 
 ## The Engineering Challenge: Validation Distribution Shift
-An initial chronological split of the radar archives produced a highly unexpected training artifact: the validation loss and evaluation metrics were consistently higher than the training metrics. 
+An initial chronological split of the radar archives produced an unexpected training artifact: the validation loss and evaluation metrics were consistently higher than the training metrics. 
 
 A deep-dive data diagnostic revealed that this discrepancy was not a sign of extraordinary generalization capability, but rather a direct consequence of a **meteorological validation distribution shift**. Because weather activity is highly seasonal and volatile, the arbitrarily selected training period contained substantially more complex and intense precipitation patterns than the validation split. 
 
@@ -43,13 +43,19 @@ The pipeline standardizes this 9D feature space using a `StandardScaler` to ensu
 *   **Medium Difficulty (Cluster 1):** Characterized by broader, continuous front-level rain bands, moderate temporal variability, and standardized tracking dynamics.
 *   **High Difficulty (Cluster 2):** Characterized by severe convective activity, deep heavy-intensity tails, high spatial variance (structural storm chaos), and rapid frame-to-frame flux.
 
+
+### Fusing the 9D Feature Space: The Composite Difficulty Score
+To transform the discrete K-Means cluster assignments into an actionable optimization target for timeline partitioning, the pipeline calculates a continuous **Composite Difficulty Score** for each archive block. This score functions as a centralized scalar metric, mathematically fusing the standardized variance, peak convective intensity, and spatial system motion vectors. 
+
+Instead of relying on a fragile chronological timeline, the dataset framework utilizes this composite score as its core baseline indicator. It defines the true physical complexity of the weather patterns contained within any given segment, serving as the objective valuation parameter that the continuous split search engine optimizes to match distribution profiles perfectly across the train, validation, and test splits.
+
 ---
 
 ## Stratified Continuous Split Search
 
-Because short-term spatiotemporal models require consecutive frames to capture velocity vectors, the dataset loader must operate on continuous datetime ranges. It cannot simply shuffle individual 10-day archives randomly, as this would break temporal continuity at boundary edges.
+Because the current pipeline implementation loads data via continuous, non-overlapping datetime ranges, the framework handles timeline partitioning by searching for contiguous multi-month blocks rather than shuffling individual 10-day archives. This continuous bounding strategy ensures total chronological sequence integrity within each isolated split.
 
-To bridge this constraint, an automated split recommendation engine inside `notebooks/03_dataset_difficulty_analysis.ipynb` executes a windowed combinatorial search. It scans the continuous timeline to extract windows whose overall distribution of the three K-Means clusters matches as closely as possible.
+To bridge this specific design choice, an automated split recommendation engine inside `notebooks/03_dataset_difficulty_analysis.ipynb` executes a windowed combinatorial search. It scans the continuous timeline to extract windows whose overall distribution of the three K-Means clusters matches as closely as possible.
 
 ```text
 Target Allocation Strategy:
@@ -61,5 +67,6 @@ Target Allocation Strategy:
         └──► Testing Split (2 Months Continuous)    ──► Cluster Mix: [55% Low, 30% Med, 15% High]
 ```
 
-### The Analytical Result
-By enforcing statistical parity across the splits, changes in validation or testing performance are mathematically guaranteed to reflect genuine architectural improvements rather than random changes in seasonal weather difficulty.
+### The Analytical Objective
+By aligning the distribution mix of weather regimes across the splits as closely as possible, the seasonal bias is reduced significantly. This statistical balancing ensures that changes in validation or test metrics are far more likely to reflect genuine architectural or optimization improvements rather than random variations in seasonal weather difficulty.
+

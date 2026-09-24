@@ -92,6 +92,7 @@ $$
 \text{Conv2D (3x3, Padding=1, No Bias)} \longrightarrow \text{GroupNorm (groups=4)} \longrightarrow \text{ReLU}
 $$
 
+**Sigmoid Functional Bounding:** Because the logarithmic range compression scales the target precipitation array values into a standardized normalized range strictly between 0 and 1, the output layer passes the 1x1 convolution logits directly through a final element-wise **Sigmoid activation function**. This architectural design choice acts as a strict mathematical guardrail, forcing the neural network to restrict its predictive outputs within identical physical boundaries $[0, 1]$ and preventing unstable out-of-range numerical explosions.
 
 ---
 
@@ -145,16 +146,20 @@ Performance is evaluated as a whole, as well as independently across the six for
 | *Figure 4: Loss over the forecast horizon.* | *Figure 5: MAE over consecutive time steps.* | *Figure 6: RMSE across the sequence window.* |
 
 ### Final Baseline Execution Metrics
-When executed on the stratified split configurations recommended through your data-centric difficulty analysis, the final optimized baseline profile recorded the following concrete computational and mathematical signatures:
+When executed on the stratified split configurations recommended through the data-centric difficulty analysis, the final optimized baseline profile recorded the following concrete computational, mathematical, and out-of-sample physical signatures:
 
 | Pipeline Diagnostic Metric | Logged Baseline Value |
 | :--- | :--- |
 | **Best Training Epoch** | `40` |
 | **Best Validation Loss (Masked MSE)** | `0.0007877` |
+| **Validation MAE** | `0.3452` |
+| **Validation RMSE** | `2.377` |
 | **Out-of-Sample Test MAE** | `0.2875` |
 | **Out-of-Sample Test RMSE** | `1.686` |
+| **Out-of-Sample Test MSE** | `0.0006816` |
 | **Total Pipeline Training Time** | `29951 s` (~8.3 Hours) |
 | **Mean Epoch Runtime Overhead** | `749 s` |
+
 
 ---
 
