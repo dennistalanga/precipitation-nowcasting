@@ -7,7 +7,7 @@
 ---
 
 ## The Engineering Challenge: Validation Distribution Shift
-An initial chronological split of the radar archives produced an unexpected training artifact: the validation loss and evaluation metrics were consistently higher than the training metrics. 
+An initial chronological split of the radar archives produced an unexpected training artifact: the validation and evaluation losses were consistently lower than the training metrics. 
 
 A deep-dive data diagnostic revealed that this discrepancy was not a sign of extraordinary generalization capability, but rather a direct consequence of a **meteorological validation distribution shift**. Because weather activity is highly seasonal and volatile, the arbitrarily selected training period contained substantially more complex and intense precipitation patterns than the validation split. 
 
@@ -44,13 +44,6 @@ The pipeline standardizes this 9D feature space using a `StandardScaler` to ensu
 *   **High Difficulty (Cluster 2):** Characterized by severe convective activity, deep heavy-intensity tails, high spatial variance (structural storm chaos), and rapid frame-to-frame flux.
 
 
-### Fusing the 9D Feature Space: The Composite Difficulty Score
-To transform the discrete K-Means cluster assignments into an actionable optimization target for timeline partitioning, the pipeline calculates a continuous **Composite Difficulty Score** for each archive block. This score functions as a centralized scalar metric, mathematically fusing the standardized variance, peak convective intensity, and spatial system motion vectors. 
-
-Instead of relying on a fragile chronological timeline, the dataset framework utilizes this composite score as its core baseline indicator. It defines the true physical complexity of the weather patterns contained within any given segment, serving as the objective valuation parameter that the continuous split search engine optimizes to match distribution profiles perfectly across the train, validation, and test splits.
-
----
-
 ## Stratified Continuous Split Search
 
 Because the current pipeline implementation loads data via continuous, non-overlapping datetime ranges, the framework handles timeline partitioning by searching for contiguous multi-month blocks rather than shuffling individual 10-day archives. This continuous bounding strategy ensures total chronological sequence integrity within each isolated split.
@@ -71,6 +64,28 @@ Target Allocation Strategy:
         └──► Testing Split (3 Months Continuous)    ──► Cluster Mix: [55.6% Low, 22.2% Med, 22.2% High]  (5 / 2 / 2 Archives)
 
 ```
+
+### Ordering Regimes & Breaking Search Parity: The Composite Difficulty Score
+
+To bridge the gap between discrete categorical cluster IDs and raw continuous data tracking, the pipeline computes a continuous **Composite Difficulty Score** for each archive block. This score aggregates the standardized features via weighted configurations:
+
+```python
+df["computed_difficulty_score"] = (
+    (df["temporal_variability"] / (df["temporal_variability"].max() + 1e-6)) * weights.get("temporal_variability", 0.25) +
+    (df["spatial_variance"] / (df["spatial_variance"].max() + 1e-6)) * weights.get("spatial_variance", 0.20) +
+    (df["rain_coverage_heavy"] / (df["rain_coverage_heavy"].max() + 1e-6)) * weights.get("heavy_tail", 0.20) +
+    (df["rain_coverage_light"] / (df["rain_coverage_light"].max() + 1e-6)) * weights.get("frequency", 0.15) +
+    (df["max_intensity"] / (df["max_intensity"].max() + 1e-6)) * weights.get("max_intensity", 0.10) +
+    (df["average_motion"] / (df["average_motion"].max() + 1e-6)) * weights.get("dynamics", 0.10)
+)
+```
+
+This composite metric serves two critical algorithmic functions within the data engineering track:
+
+1. **Monotonic Cluster ID Sorting:** Raw K-Means assignments default to arbitrary cluster indexing. The pipeline groups archives by their cluster ID, computes the true mean difficulty score for each group, and dynamically maps the IDs so that Cluster 0, 1, and 2 are systematically sorted from lowest to highest meteorological difficulty.
+2. **Combinatorial Search Tie-Breaking:** When searching for optimal timeline splits, different multi-month windows often resolve to identical discrete cluster distributions. The search engine resolves this parity by computing a secondary continuous metric tracking the average difficulty error (`total_difficulty_error`) across candidate train, validation, and test windows. Sorting the results by `["mae_score", "difficulty_error"]` uses the continuous score as a rigorous tie-breaker, guaranteeing optimal statistical alignment.
+
+---
 
 ### The Analytical Objective
 By aligning the distribution mix of weather regimes across the splits as closely as possible, the seasonal bias is reduced significantly. This statistical balancing ensures that changes in validation or test metrics are far more likely to reflect genuine architectural or optimization improvements rather than random variations in seasonal weather difficulty.
