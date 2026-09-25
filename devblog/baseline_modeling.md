@@ -26,7 +26,7 @@ $$
 \text{Loss}_{\text{Masked}} = \frac{1}{\sum M_{i,j,k}} \sum_{i,j,k} \left(Y_{i,j,k}-\hat{Y}_{i,j,k}\right)^2 M_{i,j,k}
 $$
 
-where `M` is the binary validity mask.
+where $M_{i,j,k}$ is the binary validity mask.
 
 ### Native PyTorch Implementation Hook
 ```python
@@ -91,7 +91,7 @@ The network follows a highly symmetric linear encoder-decoder topology comprisin
 Every internal processing block utilizes a uniform, hardware-optimized structure:
 
 $$
-\text{Conv2D (3x3, Padding=1, No Bias)} \longrightarrow \text{GroupNorm (groups=4)} \longrightarrow \text{ReLU}
+\text{Conv2D (3x3, Padding=1, No Bias)} \longrightarrow \text{GroupNorm (configurable groups(2, 4, 8))} \longrightarrow \text{ReLU}
 $$
 
 **Sigmoid Functional Bounding:** Because the logarithmic range compression scales the target precipitation array values into a standardized normalized range strictly between 0 and 1, the output layer passes the 1x1 convolution logits directly through a final element-wise **Sigmoid activation function**. This architectural design choice acts as a strict mathematical guardrail, forcing the neural network to restrict its predictive outputs within identical physical boundaries $[0, 1]$ and preventing unstable out-of-range numerical explosions.
@@ -125,7 +125,7 @@ The selected baseline configuration from the hyperparameter search is:
 | Weight decay | `0.05` |
 | Batch size | `16` |
 | Base channels | `32` |
-| Base channels | `8` |
+| Num Groups | `8` |
 
 ---
 
