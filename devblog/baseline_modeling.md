@@ -10,6 +10,7 @@
 The core modeling framework intentionally begins with a deterministic **BaselineCNN** to establish a simple, computationally efficient spatial reference point. 
 
 Because `Conv2d` blocks natively operate on four-dimensional tensors `[Batch, Channels, Height, Width]`, the temporal dimension is collapsed into the channel dimension via structural permutation:
+
 $$
 \text{Input Dimensions: } [B, T_{\text{in}}, C_{\text{data}}, H, W] \longrightarrow \text{Reshaped Dimensions: } [B, C_{\text{data}} \times T_{\text{in}}, H, W]
 $$
@@ -88,6 +89,7 @@ The network follows a highly symmetric linear encoder-decoder topology comprisin
 ```
 
 Every internal processing block utilizes a uniform, hardware-optimized structure:
+
 $$
 \text{Conv2D (3x3, Padding=1, No Bias)} \longrightarrow \text{GroupNorm (groups=4)} \longrightarrow \text{ReLU}
 $$
