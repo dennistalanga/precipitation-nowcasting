@@ -55,16 +55,21 @@ Instead of relying on a fragile chronological timeline, the dataset framework ut
 
 Because the current pipeline implementation loads data via continuous, non-overlapping datetime ranges, the framework handles timeline partitioning by searching for contiguous multi-month blocks rather than shuffling individual 10-day archives. This continuous bounding strategy ensures total chronological sequence integrity within each isolated split.
 
-To bridge this specific design choice, an automated split recommendation engine inside `notebooks/03_dataset_difficulty_analysis.ipynb` executes a windowed combinatorial search. It scans the continuous timeline to extract windows whose overall distribution of the three K-Means clusters matches as closely as possible.
+To handle this continuous loading layout, an automated search engine inside `notebooks/03_dataset_difficulty_analysis.ipynb` scans the entire timeline to find continuous windows that match on weather difficulty. The script evaluates the search space and provides two split setup suggestions:
+
+1. **Minimal Difficulty Difference:** This option picks the windows with the mathematically smallest difference in cluster averages, making the splits as similar as possible in overall difficulty.
+2. **Distribution-Constrained Match:** This option adds a strict rule requiring each split (train, val, test) to contain at least one archive from every cluster. This ensures that the splits do not just match on a generic average, but share a highly similar weather distribution that includes rare convective storms in every phase.
+
 
 ```text
 Target Allocation Strategy:
-[Complete 3-Year Archive Timeline] 
+[Complete 15-Month Archive Timeline] 
         │
         ▼ [Combinatorial Window Search Engine]
-        ├──► Training Split (6 Months Continuous)   ──► Cluster Mix: [55% Low, 30% Med, 15% High]
-        ├──► Validation Split (2 Months Continuous) ──► Cluster Mix: [54% Low, 31% Med, 15% High]
-        └──► Testing Split (2 Months Continuous)    ──► Cluster Mix: [55% Low, 30% Med, 15% High]
+        ├──► Training Split (9 Months Continuous)   ──► Cluster Mix: [55.6% Low, 29.6% Med, 14.8% High]  (15 / 8 / 4 Archives)
+        ├──► Validation Split (3 Months Continuous) ──► Cluster Mix: [55.6% Low, 33.3% Med, 11.1% High]  (5 / 3 / 1 Archives)
+        └──► Testing Split (3 Months Continuous)    ──► Cluster Mix: [55.6% Low, 22.2% Med, 22.2% High]  (5 / 2 / 2 Archives)
+
 ```
 
 ### The Analytical Objective
