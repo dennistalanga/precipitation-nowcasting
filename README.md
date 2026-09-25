@@ -59,10 +59,12 @@ To prepare the highly right-skewed, sparse precipitation matrices for neural tra
 1. **Missing-Value Masking:** Missing measurements (`-1`) cannot be treated as physical zero rainfall, as this introduces severe bias into the regression target. The pipeline extracts a binary validity mask (M) matching the input shape. During downsampling, the rainfall matrix utilizes **area interpolation**, while the validity mask utilizes **nearest-neighbor interpolation** to prevent the creation of fractional mask states.
 2. **Extreme Value Clipping:** Rain intensity data exhibits extreme right-skewing. To prevent isolated convective peak cells from disproportionately bleeding into neighboring grid squares during spatial interpolation, values are clipped to a physical upper-bound ceiling of `1500` (15 mm) prior to resizing.
 3. **Logarithmic Range Compression:** A specialized log transform compresses the dynamic range of the heavy precipitation tail while allocating significantly higher numerical resolution to low and moderate rainfall regimes:
-   $$
-   f(x)=\frac{\log(1+x)}{\log(1+x_{\max})}
-   $$
-   *The inverse transformation is applied automatically during physical-space evaluation and visualization maps.*
+
+$$
+f(x)=\frac{\log(1+x)}{\log(1+x_{\max})}
+$$
+
+  *The inverse transformation is applied automatically during physical-space evaluation and visualization maps.*
 
 Following transformation, the processed archives are stored completely **uncompressed as binary `.npy` arrays inside the `data/processed/` directory**. This uncompressed storage structure is a deliberate design choice that permits fast, ultra-low-overhead memory mapping (`mmap_mode="r"`) during parallel training loops.
 
