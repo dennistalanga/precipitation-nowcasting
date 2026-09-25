@@ -150,7 +150,7 @@ The framework benchmarks multiple spatial and spatiotemporal architectures again
 
 ### 🏆 Quantitative Meteorological Performance (Out-of-Sample Test)
 
-| Model Architecture | Test MAE | Test RMSE | Test MSE | HSS (Thresh: 0.5) | CSI (Thresh: 0.5) | FSS (Scale: 5km) |
+| Model Architecture | Test MAE | Test RMSE | Test MSE | HSS (Thresh: 0.5) | CSI (Thresh: 0.5) | FSS (Scale: 10km) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Baseline CNN (Encoder-Decoder)** | 0.2875 | 1.686 | 0.0006816 | *0.421* | *0.389* | *0.512* |
 | **U-Net (Skip Connections)** | *TBD* | *TBD* | *TBD* | *TBD* | *TBD* | *TBD* |
