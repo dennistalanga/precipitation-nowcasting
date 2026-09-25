@@ -16,6 +16,7 @@ To achieve industrial-grade training protection, a multi-layered defensive optim
 *   **High-Precision Loss Reductions:** While intermediate spatial features scale smoothly inside standard half-precision tensors, computing regression metrics over sparse, zero-inflated grids causes extreme rounding errors. Pushing the loss function computation and valid mask division loops into explicit `Float32` allocation channels fully solved metric underflow issues.
 *   **Analytical Gradient-Norm Profiling:** Rather than treating optimization as an unmonitored black box, the gradient norm was integrated as a first-class logging diagnostic. The pipeline tracks raw gradient magnitudes continuously across backpropagation cycles, executing explicit **Gradient Clipping** thresholds. This completely stops exploding updates, guaranteeing that optimization tracking tracks finite, stable weight trajectories over long-running runs.
 *   **Masked Mathematical Objectives:** Missing spatial measurements (`-1` value tokens) are handled dynamically by building an analytical binary validity mask M at the preprocessing edge. The training loop utilizes a custom masked loss layer that ensures invalid sensor data never injects corrupt gradients into the weight adjustments:
+
 $$
 \text{Loss}_{\text{Masked}} = \frac{1}{\sum M_{i,j,k}} \sum_{i,j,k} \left(Y_{i,j,k}-\hat{Y}_{i,j,k}\right)^2 M_{i,j,k}
 $$
@@ -38,9 +39,10 @@ Instead of accumulating heavy 4D prediction matrices in system memory for the du
 To evaluate performance without bottlenecking pipeline velocity, all threshold-based contingency and neighborhood diagnostics are computed **inline directly on the GPU**. This eliminates continuous host-to-device tensor copying overhead.
 *   **On-the-Fly Scale Parsing:** Advanced multi-scale filters like the **Fractions Skill Score (FSS)** are executed periodically (e.g., `batch_idx % 4 == 0`) to prevent heavy neighborhood spatial convolutions from slowing down the primary inference engine loop.
 *   **VRAM Algebraic Correlation Trackers:** For continuous field comparisons, the engine tracks perfect global **Pearson Correlation Coefficients** across millions of coordinates without storing heavy array arrays. The loop pipes raw algebraic intermediate products natively into an isolated GPU accumulator vector:
-   $$
-   \text{Accumulator} = \left[ \sum X, \sum Y, \sum X^2, \sum Y^2, \sum XY, N_{\text{pixels}} \right]
-   $$
+
+$$
+\text{Accumulator} = \left[ \sum X, \sum Y, \sum X^2, \sum Y^2, \sum XY, N_{\text{pixels}} \right]
+$$
 
    Upon loop completion, these aggregated scalars are synchronized once to the host to instantly compute the final Pearson coefficient.
 
@@ -64,7 +66,7 @@ The compiled verification database (`calculated_verification_metrics.json`) feed
 
 1.  **Continuous Field Accuracy:** Evaluates macro-level volume tracking trends, tracking spatial mean absolute error footprints (`spatial_mae_footprint.npy`) to visualize where localized geographic sensor biases occur.
 2.  **Threshold-Based Operational Skill (Categorical Verification):** Aggregates inline contingency tables into standardized weather forecasting metrics including **Probability of Detection (POD)**, **False Alarm Ratio (FAR)**, **Critical Success Index (CSI)**, **Heidke Skill Score (HSS)**, and the **Symmetric Extreme Dependency Score (SEDS)** across every step of the forecast horizon against a persistence baseline.
-3.  **Advanced Scale-Selective Diagnostics:** Utilizes spatial **Fractions Skill Scores (FSS)** over varying neighborhood block scales (5km, 15km, 31km) and **Structure-Amplitude-Location (SAL)** decomposition. This isolates precise architectural failures, distinguishing between bad spatial displacement, structural convective cell blurring, and overall amplitude miscalculations, effectively bypassing the "double penalty effect" inherent in raw pixel-matching loss metrics.
+3.  **Advanced Scale-Selective Diagnostics:** Utilizes spatial **Fractions Skill Scores (FSS)** over varying neighborhood block scales (10km, 30km, 62km) and **Structure-Amplitude-Location (SAL)** decomposition. This isolates precise architectural failures, distinguishing between bad spatial displacement, structural convective cell blurring, and overall amplitude miscalculations, effectively bypassing the "double penalty effect" inherent in raw pixel-matching loss metrics.
 
 ---
 
