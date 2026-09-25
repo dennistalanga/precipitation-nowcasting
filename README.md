@@ -31,9 +31,6 @@ The project utilizes the open **MeteoNet** dataset curated by **Météo-France**
 | **Spatial Resolution** | 0.01° grid spacing (~1km × 1km tiles) bound to coordinate system EPSG:4326 |
 | **Missing-Value Indicator** | `-1` (Identifies hardware dropouts, non-zero clutter, or missing scans) |
 
-> ⏳ **Runtime Temporal Sequence Validation:** To prevent data contamination during continuous batch generation, the `RadarDataset` constructor executes an automated verification layer over the loaded metadata timestamps. Every candidate sequence window is dynamically validated for an exact 5-minute sampling interval across the combined input and forecast timeline. If a window hits missing scans or localized hardware dropouts that create a time gap, the sequence is automatically discarded from the index. This runtime validation guarantees that the model never processes distorted chronological fields without requiring destructive offline modifications to the raw files.
-
-
 ---
 
 ## 🛠️ Data Engineering & Preprocessing Pipeline
@@ -67,6 +64,8 @@ $$
   *The inverse transformation is applied automatically during physical-space evaluation and visualization maps.*
 
 Following transformation, the processed archives are stored completely **uncompressed as binary `.npy` arrays inside the `data/processed/` directory**. This uncompressed storage structure is a deliberate design choice that permits fast, ultra-low-overhead memory mapping (`mmap_mode="r"`) during parallel training loops.
+
+> ⏳ **Runtime Temporal Sequence Validation:** To prevent data contamination during continuous batch generation, the `RadarDataset` constructor executes an automated verification layer over the loaded metadata timestamps. Every candidate sequence window is dynamically validated for an exact 5-minute sampling interval across the combined input and forecast timeline. If a window hits missing scans or localized hardware dropouts that create a time gap, the sequence is automatically discarded from the index. This runtime validation guarantees that the model never processes distorted chronological fields without requiring destructive offline modifications to the raw files.
 
 ---
 
