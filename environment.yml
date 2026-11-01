@@ -9,7 +9,6 @@ dependencies:
   # Core Deep Learning Stack (Conda handles the CUDA mapping smoothly)
   - pytorch=2.3.1            # Stable PyTorch build compiled for CUDA 12.1 bindings
   - torchvision=0.18.1       
-  - torchaudio=2.3.1
   - pytorch-cuda=12.1        # Forces explicit linkage to your RTX 3070 graphic card
   # Geospatial & Matrix Stack (Strictly pinned to maintain NumPy 1.x C-API standard)
   - cartopy=0.21.1           # FIXED: Locks stable version to eliminate vertical map shift
@@ -34,13 +33,9 @@ dependencies:
       - black
       # Advanced Spatiotemporal Modeling (ViT/Transformers)
       - einops
-      # Interactive Web Dashboard Interface
-      - streamlit
-      # DATABASE SUPPORT: Enterprise Relational Database Ingestors
-      - sqlalchemy        
-      - alembic           
-      - psycopg2-binary
       # Web API Deployment Layer & Serving Architecture
       - fastapi==0.111.0
       - uvicorn==0.30.1
       - requests==2.32.3
+      # MLOps Infrastructure: Unified Experiment & Lineage Tracking
+      - mlflow==3.11.1

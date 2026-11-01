@@ -2,6 +2,7 @@
 data/raw/
 data/processed/
 data/difficulty/
+mlruns/
 output/
 
 # Exclude documentation assets

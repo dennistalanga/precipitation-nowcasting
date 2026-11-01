@@ -1,0 +1,39 @@
+services:
+  # Service A: MLflow Central Tracking Server & Repository
+  mlflow:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM anaconda/miniconda:latest
+        RUN pip install --no-cache-dir mlflow==3.11.1
+        WORKDIR /workspace
+    container_name: mlflow_server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/workspace/mlruns
+    working_dir: /workspace
+    command: >
+      mlflow server 
+      --host 0.0.0.0 
+      --port 5000 
+      --backend-store-uri file:///workspace/mlruns 
+      --artifacts-destination file:///workspace/mlruns
+
+
+
+  # Service B: Production-Grade FastAPI Nowcasting Microservice
+  web_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nowcasting_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/workspace                  # Mounts source code changes on the fly
+      - ./mlruns:/workspace/mlruns    # Gives the API direct access to registered models
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
