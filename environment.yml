@@ -7,9 +7,9 @@ channels:
 dependencies:
   - python=3.11
   # Core Deep Learning Stack (Conda handles the CUDA mapping smoothly)
-  - pytorch=2.3.1            # Stable PyTorch build compiled for CUDA 12.1 bindings
-  - torchvision=0.18.1       
-  - pytorch-cuda=12.1        # Forces explicit linkage to your RTX 3070 graphic card
+  - pytorch=2.4.1            # Stable PyTorch build compiled for CUDA 12.1 bindings
+  - torchvision=0.19.1       
+  - pytorch-cuda=12.1        # Forces explicit linkage to GPU
   # Geospatial & Matrix Stack (Strictly pinned to maintain NumPy 1.x C-API standard)
   - cartopy=0.21.1           # FIXED: Locks stable version to eliminate vertical map shift
   - shapely=2.0.1            # Locks matching geometry tracking systems
