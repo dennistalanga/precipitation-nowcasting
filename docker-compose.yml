@@ -1,5 +1,5 @@
 services:
-  # Service A: MLflow Central Tracking Server & Repository
+  # Service A: Decoupled Stateful MLflow Server
   mlflow:
     build:
       context: .
@@ -11,18 +11,20 @@ services:
     ports:
       - "5000:5000"
     volumes:
+      # 1. Primary Vault Storage Layer: Persists metadata independently in a Docker-managed volume
+      - mlflow_data_vault:/workspace/mlruns
+      # 2. Local Mount Mirror: Binds the tracking data to the local workspace for direct visibility
       - ./mlruns:/workspace/mlruns
     working_dir: /workspace
     command: >
       mlflow server 
       --host 0.0.0.0 
       --port 5000 
-      --backend-store-uri file:///workspace/mlruns 
-      --artifacts-destination file:///workspace/mlruns
+      --backend-store-uri sqlite:////workspace/mlruns/mlflow.db
+      --artifacts-destination file:///workspace/mlruns/artifacts
+    restart: unless-stopped
 
-
-
-  # Service B: Production-Grade FastAPI Nowcasting Microservice
+  # Service B: Stateless FastAPI Nowcasting Microservice
   web_api:
     build:
       context: .
@@ -30,10 +32,17 @@ services:
     container_name: nowcasting_api
     ports:
       - "8000:8000"
-    volumes:
-      - .:/workspace                  # Mounts source code changes on the fly
-      - ./mlruns:/workspace/mlruns    # Gives the API direct access to registered models
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      # Mounts local source code changes dynamically for live-reloading during development
+      - .:/workspace
+      # Shared mount ensuring the API has direct local filesystem access to registered models
+      - ./mlruns:/workspace/mlruns
     depends_on:
       - mlflow
+    restart: unless-stopped
+
+# Global Persistent Hardware Storage Volumes
+volumes:
+  mlflow_data_vault:
